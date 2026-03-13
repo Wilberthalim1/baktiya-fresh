@@ -1,0 +1,8 @@
+Tambahkan kode berikut ke dalam file bootstrap/app.php
+di dalam ->withMiddleware(function (Middleware $middleware) {
+
+    $middleware->alias([
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
+    ]);
+
+});
