@@ -49,7 +49,7 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/invoicing/sales', [InvoicingController::class, 'salesStore'])->name('invoicing.sales.store');
     Route::get('/invoicing/sales/{invoice}', [InvoicingController::class, 'salesShow'])->name('invoicing.sales.show');
     Route::post('/invoicing/sales/{invoice}/payment', [InvoicingController::class, 'salesPayment'])->name('invoicing.sales.payment');
-    Route::get('/invoicing/purchase', [InvoicingController::class, 'purchaseIndex'])->name('invoicing.purchase.index');
+    Route::get('/invoicing/purchase/create', [InvoicingController::class, 'purchaseCreate'])->name('invoicing.purchase.create');
     Route::get('/invoicing/purchase/create', [InvoicingController::class, 'purchaseCreate'])->name('invoicing.purchase.create');
     Route::post('/invoicing/purchase', [InvoicingController::class, 'purchaseStore'])->name('invoicing.purchase.store');
 });

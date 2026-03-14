@@ -18,7 +18,6 @@ use Illuminate\Support\Facades\DB;
 
 class InvoicingController extends Controller
 {
-    // Sales Invoice
     public function salesIndex()
     {
         $invoices = SalesInvoice::with('customer', 'salesOrder')->latest()->paginate(15);
@@ -47,10 +46,8 @@ class InvoicingController extends Controller
         return back();
     }
 
-    // Purchase Invoice (GRPO)
     public function purchaseIndex()
     {
-        // Tampilkan PO yang sudah sent (belum di-GRPO) dan yang sudah received
         $pending_pos = PurchaseOrder::with('supplier', 'purchaseRequest')
             ->where('status', 'sent')
             ->latest()
@@ -87,7 +84,6 @@ class InvoicingController extends Controller
         DB::transaction(function () use ($request) {
             $po = PurchaseOrder::with('items.product')->findOrFail($request->purchase_order_id);
 
-            // Buat GRPO
             $gr = GoodsReceipt::create([
                 'doc_no'            => GoodsReceipt::generateDocNo(),
                 'purchase_order_id' => $po->id,
@@ -115,7 +111,6 @@ class InvoicingController extends Controller
                     'remarks'                => $data['remarks'] ?? null,
                 ]);
 
-                // Update stok produk
                 if ($qtyReceived > 0) {
                     Product::find($poItem->product_id)->increment('stock_quantity', $qtyReceived);
                     $poItem->increment('qty_received', $qtyReceived);
@@ -124,7 +119,6 @@ class InvoicingController extends Controller
                 $total += $qtyReceived * $poItem->unit_price;
             }
 
-            // Buat Invoice Pembelian
             $invNumber = 'INV-P' . str_pad(PurchaseInvoice::count() + 1, 3, '0', STR_PAD_LEFT);
 
             PurchaseInvoice::create([
@@ -143,7 +137,6 @@ class InvoicingController extends Controller
                 'notes'             => $request->remarks,
             ]);
 
-            // Update status PO
             $po->update(['status' => 'received']);
         });
 
