@@ -21,6 +21,10 @@
                 <i class="bi bi-x-circle me-1"></i>Cancel PO
             </button>
         </form>
+        @elseif($po->status === 'sent')
+        <button class="btn btn-outline-success" disabled>
+            <i class="bi bi-check-circle me-1"></i>Sudah Dikirim ke Supplier
+        </button>
         @endif
         <span class="badge bg-{{ $po->status_badge }} fs-6 px-3 py-2">{{ $po->status_label }}</span>
     </div>
@@ -34,8 +38,7 @@
 
 <div class="row g-3">
     <div class="col-md-8">
-        {{-- Detail PO --}}
-        <div class="card mb-3">
+        <div class="card">
             <div class="card-header fw-bold d-flex justify-content-between">
                 <span>Detail PO</span>
                 <strong class="text-primary">{{ $po->doc_no }}</strong>
@@ -107,121 +110,10 @@
                 </table>
             </div>
         </div>
-
-        {{-- GRPO Form --}}
-        @if($po->status === 'sent')
-        <div class="card border-success">
-            <div class="card-header bg-success text-white fw-bold">
-                <i class="bi bi-box-seam me-2"></i>Goods Receipt Purchase Order (GRPO)
-            </div>
-            <div class="card-body">
-                <form action="{{ route('purchasing.grpo.store', $po) }}" method="POST">
-                    @csrf
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Tanggal Terima Barang</label>
-                            <input type="date" name="receipt_date" class="form-control" value="{{ date('Y-m-d') }}" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Diterima Oleh</label>
-                            <input type="text" name="received_by" class="form-control" placeholder="Contoh: Valencia Lim" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label class="form-label fw-bold">Remarks</label>
-                            <input type="text" name="remarks" class="form-control" placeholder="Catatan penerimaan...">
-                        </div>
-                    </div>
-
-                    <table class="table">
-                        <thead class="table-light">
-                            <tr>
-                                <th>No</th>
-                                <th>Item Name</th>
-                                <th>QTY Di-order</th>
-                                <th>QTY Diterima</th>
-                                <th>Item Price</th>
-                                <th>Kondisi</th>
-                                <th>Remarks</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        @foreach($po->items as $i => $item)
-                        <tr>
-                            <td>{{ $i + 1 }}</td>
-                            <td>
-                                <strong>{{ $item->product->name }}</strong>
-                                <br><small class="text-muted">{{ $item->product->code }}</small>
-                            </td>
-                            <td>
-                                <span class="badge bg-info">{{ $item->quantity }} {{ $item->product->unit }}</span>
-                            </td>
-                            <td>
-                                <input type="number" name="items[{{ $item->id }}][qty_received]" class="form-control form-control-sm" value="{{ $item->quantity }}" min="0" max="{{ $item->quantity }}" required style="width:80px">
-                            </td>
-                            <td>Rp {{ number_format($item->unit_price, 0, ',', '.') }}</td>
-                            <td>
-                                <select name="items[{{ $item->id }}][condition]" class="form-select form-select-sm" style="width:110px">
-                                    <option value="good">Good</option>
-                                    <option value="damaged">Damaged</option>
-                                </select>
-                            </td>
-                            <td>
-                                <input type="text" name="items[{{ $item->id }}][remarks]" class="form-control form-control-sm" placeholder="Catatan..." style="width:120px">
-                            </td>
-                        </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
-
-                    <div class="d-flex gap-2 mt-3">
-                        <button type="submit" class="btn btn-success">
-                            <i class="bi bi-check-circle me-1"></i>Accept — Terima Barang
-                        </button>
-                    </div>
-                </form>
-
-                <form action="{{ route('purchasing.grpo.cancel', $po) }}" method="POST" class="mt-2">
-                    @csrf @method('PATCH')
-                    <button class="btn btn-danger" onclick="return confirm('Batalkan PO ini?')">
-                        <i class="bi bi-x-circle me-1"></i>Cancelled — Batalkan PO
-                    </button>
-                </form>
-            </div>
-        </div>
-        @endif
-
-        {{-- GRPO History --}}
-        @if($po->goodsReceipts->count() > 0)
-        <div class="card mt-3">
-            <div class="card-header fw-bold">Riwayat GRPO</div>
-            <div class="card-body p-0">
-                <table class="table mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Doc No</th>
-                            <th>Tanggal Terima</th>
-                            <th>Diterima Oleh</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    @foreach($po->goodsReceipts as $gr)
-                    <tr>
-                        <td><strong class="text-success">{{ $gr->doc_no }}</strong></td>
-                        <td>{{ $gr->receipt_date->format('d/m/Y') }}</td>
-                        <td>{{ $gr->received_by }}</td>
-                        <td><span class="badge bg-{{ $gr->status_badge }}">{{ $gr->status_label }}</span></td>
-                    </tr>
-                    @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        @endif
     </div>
 
     <div class="col-md-4">
-        <div class="card mb-3">
+        <div class="card">
             <div class="card-header fw-bold">Info PO</div>
             <div class="card-body">
                 <div class="mb-2">
