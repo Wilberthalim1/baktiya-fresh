@@ -5,6 +5,7 @@ use App\Http\Controllers\DashboardInventoryController;
 use App\Http\Controllers\SalesOrderController;
 use App\Http\Controllers\PurchasingController;
 use App\Http\Controllers\InvoicingController;
+use App\Http\Controllers\AccountingController;
 
 Route::get('/', fn() => redirect()->route('login'));
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
@@ -49,7 +50,19 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/invoicing/sales', [InvoicingController::class, 'salesStore'])->name('invoicing.sales.store');
     Route::get('/invoicing/sales/{invoice}', [InvoicingController::class, 'salesShow'])->name('invoicing.sales.show');
     Route::post('/invoicing/sales/{invoice}/payment', [InvoicingController::class, 'salesPayment'])->name('invoicing.sales.payment');
-    Route::get('/invoicing/purchase/create', [InvoicingController::class, 'purchaseCreate'])->name('invoicing.purchase.create');
+    Route::get('/invoicing/purchase', [InvoicingController::class, 'purchaseIndex'])->name('invoicing.purchase.index');
     Route::get('/invoicing/purchase/create', [InvoicingController::class, 'purchaseCreate'])->name('invoicing.purchase.create');
     Route::post('/invoicing/purchase', [InvoicingController::class, 'purchaseStore'])->name('invoicing.purchase.store');
+
+    // Accounting - Supplier Payment
+    Route::get('/accounting/supplier', [AccountingController::class, 'supplierIndex'])->name('accounting.supplier.index');
+    Route::get('/accounting/supplier/create', [AccountingController::class, 'supplierCreate'])->name('accounting.supplier.create');
+    Route::post('/accounting/supplier', [AccountingController::class, 'supplierStore'])->name('accounting.supplier.store');
+    Route::patch('/accounting/supplier/{payment}/approve', [AccountingController::class, 'supplierApprove'])->name('accounting.supplier.approve');
+    Route::patch('/accounting/supplier/{payment}/reject', [AccountingController::class, 'supplierReject'])->name('accounting.supplier.reject');
+
+    // Accounting - Customer Payment
+    Route::get('/accounting/customer', [AccountingController::class, 'customerIndex'])->name('accounting.customer.index');
+    Route::get('/accounting/customer/create', [AccountingController::class, 'customerCreate'])->name('accounting.customer.create');
+    Route::post('/accounting/customer', [AccountingController::class, 'customerStore'])->name('accounting.customer.store');
 });
