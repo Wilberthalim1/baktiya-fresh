@@ -5,6 +5,8 @@ use App\Models\SalesOrder;
 use App\Models\SalesOrderItem;
 use App\Models\Customer;
 use App\Models\Product;
+use App\Models\InventoryTransfer;
+use App\Models\InventoryTransferItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -41,26 +43,26 @@ class SalesOrderController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'customer_id' => 'required|exists:customers,id',
-            'order_date' => 'required|date',
-            'required_date' => 'required|date|after_or_equal:order_date',
-            'items' => 'required|array|min:1',
-            'items.*.product_id' => 'required|exists:products,id',
-            'items.*.quantity' => 'required|integer|min:1',
-            'items.*.unit_price' => 'required|numeric|min:0',
+            'customer_id'          => 'required|exists:customers,id',
+            'order_date'           => 'required|date',
+            'required_date'        => 'required|date|after_or_equal:order_date',
+            'items'                => 'required|array|min:1',
+            'items.*.product_id'   => 'required|exists:products,id',
+            'items.*.quantity'     => 'required|integer|min:1',
+            'items.*.unit_price'   => 'required|numeric|min:0',
         ]);
 
         DB::transaction(function () use ($request) {
             $so = SalesOrder::create([
-                'so_number' => SalesOrder::generateNumber(),
-                'customer_id' => $request->customer_id,
-                'sales_id' => Auth::id(),
-                'order_date' => $request->order_date,
+                'so_number'     => SalesOrder::generateNumber(),
+                'customer_id'   => $request->customer_id,
+                'sales_id'      => Auth::id(),
+                'order_date'    => $request->order_date,
                 'required_date' => $request->required_date,
-                'status' => 'draft',
-                'notes' => $request->notes,
-                'discount' => $request->discount ?? 0,
-                'subtotal' => 0, 'tax' => 0, 'total' => 0,
+                'status'        => 'draft',
+                'notes'         => $request->notes,
+                'discount'      => $request->discount ?? 0,
+                'subtotal'      => 0, 'tax' => 0, 'total' => 0,
             ]);
 
             foreach ($request->items as $item) {
@@ -70,14 +72,14 @@ class SalesOrderController extends Controller
                 $needPurchase = max(0, $qty - $available);
 
                 SalesOrderItem::create([
-                    'sales_order_id' => $so->id,
-                    'product_id' => $item['product_id'],
-                    'quantity' => $qty,
-                    'qty_available' => $available,
-                    'qty_need_purchase' => $needPurchase,
-                    'unit_price' => $item['unit_price'],
-                    'discount' => $item['discount'] ?? 0,
-                    'total' => $qty * $item['unit_price'] - ($item['discount'] ?? 0),
+                    'sales_order_id'   => $so->id,
+                    'product_id'       => $item['product_id'],
+                    'quantity'         => $qty,
+                    'qty_available'    => $available,
+                    'qty_need_purchase'=> $needPurchase,
+                    'unit_price'       => $item['unit_price'],
+                    'discount'         => $item['discount'] ?? 0,
+                    'total'            => $qty * $item['unit_price'] - ($item['discount'] ?? 0),
                 ]);
             }
 
@@ -90,14 +92,36 @@ class SalesOrderController extends Controller
 
     public function show(SalesOrder $salesOrder)
     {
-        $salesOrder->load('customer', 'sales', 'items.product', 'purchaseRequest');
+        $salesOrder->load('customer', 'sales', 'items.product', 'inventoryTransfer');
         return view('sales.show', compact('salesOrder'));
     }
 
     public function approve(SalesOrder $salesOrder)
     {
-        $salesOrder->update(['status' => 'approved']);
-        return back()->with('success', 'Sales Order disetujui.');
+        DB::transaction(function () use ($salesOrder) {
+            $salesOrder->load('items');
+            $salesOrder->update(['status' => 'approved']);
+
+            // Auto create Inventory Transfer Request
+            $transfer = InventoryTransfer::create([
+                'doc_no'         => InventoryTransfer::generateDocNo(),
+                'sales_order_id' => $salesOrder->id,
+                'created_by'     => Auth::id(),
+                'status'         => 'pending',
+            ]);
+
+            foreach ($salesOrder->items as $item) {
+                InventoryTransferItem::create([
+                    'inventory_transfer_id' => $transfer->id,
+                    'product_id'            => $item->product_id,
+                    'qty_request'           => $item->quantity,
+                    'qty_transfer'          => 0,
+                    'unit_price'            => $item->unit_price,
+                ]);
+            }
+        });
+
+        return back()->with('success', 'SO disetujui! Inventory Transfer Request otomatis dibuat.');
     }
 
     public function cancel(SalesOrder $salesOrder)
